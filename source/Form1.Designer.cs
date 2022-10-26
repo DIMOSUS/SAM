@@ -34,11 +34,13 @@
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
-            this.panel1 = new System.Windows.Forms.Panel();
+            this.overlays = new System.Windows.Forms.Panel();
+            this.overlayPanel1 = new System.Windows.Forms.Panel();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.button6 = new System.Windows.Forms.Button();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
-            this.panel1.SuspendLayout();
+            this.button6 = new System.Windows.Forms.Button();
+            this.overlays.SuspendLayout();
+            this.overlayPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -114,21 +116,29 @@
             this.button5.UseVisualStyleBackColor = true;
             this.button5.Click += new System.EventHandler(this.button5_Click);
             // 
-            // panel1
+            // overlays
             // 
-            this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panel1.Controls.Add(this.numericUpDown1);
-            this.panel1.Controls.Add(this.button6);
-            this.panel1.Controls.Add(this.checkBox1);
-            this.panel1.Location = new System.Drawing.Point(1114, 466);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(138, 251);
-            this.panel1.TabIndex = 6;
+            this.overlays.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.overlays.Controls.Add(this.overlayPanel1);
+            this.overlays.Location = new System.Drawing.Point(1114, 318);
+            this.overlays.Name = "overlays";
+            this.overlays.Size = new System.Drawing.Size(138, 399);
+            this.overlays.TabIndex = 6;
+            // 
+            // overlayPanel1
+            // 
+            this.overlayPanel1.BackColor = System.Drawing.Color.Goldenrod;
+            this.overlayPanel1.Controls.Add(this.numericUpDown1);
+            this.overlayPanel1.Controls.Add(this.checkBox1);
+            this.overlayPanel1.Controls.Add(this.button6);
+            this.overlayPanel1.Location = new System.Drawing.Point(3, 3);
+            this.overlayPanel1.Name = "overlayPanel1";
+            this.overlayPanel1.Size = new System.Drawing.Size(130, 25);
+            this.overlayPanel1.TabIndex = 3;
             // 
             // numericUpDown1
             // 
             this.numericUpDown1.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.numericUpDown1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.numericUpDown1.Location = new System.Drawing.Point(49, 3);
             this.numericUpDown1.Maximum = new decimal(new int[] {
             180,
@@ -144,11 +154,15 @@
             this.numericUpDown1.Size = new System.Drawing.Size(43, 19);
             this.numericUpDown1.TabIndex = 2;
             this.numericUpDown1.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-            this.numericUpDown1.Value = new decimal(new int[] {
-            100,
-            0,
-            0,
-            -2147483648});
+            // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(5, 6);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(15, 14);
+            this.checkBox1.TabIndex = 0;
+            this.checkBox1.UseVisualStyleBackColor = true;
             // 
             // button6
             // 
@@ -157,17 +171,7 @@
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(19, 19);
             this.button6.TabIndex = 1;
-            this.button6.Text = "12";
-            this.button6.UseVisualStyleBackColor = true;
-            // 
-            // checkBox1
-            // 
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(3, 6);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(15, 14);
-            this.checkBox1.TabIndex = 0;
-            this.checkBox1.UseVisualStyleBackColor = true;
+            this.button6.Text = "1";
             // 
             // Form1
             // 
@@ -175,7 +179,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
             this.ClientSize = new System.Drawing.Size(1264, 729);
-            this.Controls.Add(this.panel1);
+            this.Controls.Add(this.overlays);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
@@ -184,8 +188,9 @@
             this.Controls.Add(this.button1);
             this.Name = "Form1";
             this.Text = "StupidAudioMeasurement";
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
+            this.overlays.ResumeLayout(false);
+            this.overlayPanel1.ResumeLayout(false);
+            this.overlayPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             this.ResumeLayout(false);
 
@@ -199,9 +204,10 @@
         private Button button3;
         private Button button4;
         private Button button5;
-        private Panel panel1;
+        private Panel overlays;
         private Button button6;
         private CheckBox checkBox1;
         private NumericUpDown numericUpDown1;
+        private Panel overlayPanel1;
     }
 }

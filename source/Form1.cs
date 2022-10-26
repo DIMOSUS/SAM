@@ -13,6 +13,8 @@ namespace sam
 {
     public partial class Form1 : Form
     {
+        List<Overlay> allOverlays = new List<Overlay>();
+
         public WaveIn waveSource = null;
         DirectSoundOut waveOut = null;
         private WaveOut player;
@@ -22,6 +24,8 @@ namespace sam
         public Form1()
         {
             InitializeComponent();
+            CustomInitializeComponent();
+
             expSweepMeasurement.Init(12, 44100, 24, 1.0f, Chanels.Mono);
             expSweepMeasurement.CompleteNotify += (bool Succes) =>
             {
@@ -36,7 +40,6 @@ namespace sam
                         button1.Text = "Aborted";
                     }
                 });
-
             };
 
             button2_Click(this, new EventArgs());
@@ -94,6 +97,7 @@ namespace sam
 
             plotView1.Model = model;
         }
+        
         private void button3_Click(object sender, EventArgs e)
         {
             var model = new PlotModel { Title = "Phase Response" };
@@ -243,6 +247,67 @@ namespace sam
             });
 
             plotView1.Model = model;
+        }
+
+        private void CustomInitializeComponent()
+        {
+            allOverlays.Add(new Overlay(overlayPanel1, button6, numericUpDown1, checkBox1, 1));
+
+            SuspendLayout();
+            overlays.SuspendLayout();
+
+            Random r = new Random(3);
+
+            for (int i = 2; i <= 12; i++)
+            {
+                Button button = new Button();
+                CheckBox checkBox = new CheckBox();
+                NumericUpDown numericUpDown = new NumericUpDown();
+                Panel overlayPanel = new Panel();
+
+                overlayPanel.SuspendLayout();
+
+                //
+                overlayPanel.BackColor = Color.FromArgb(r.Next(255), r.Next(255), r.Next(255));
+                
+                overlayPanel.Controls.Add(numericUpDown);
+                overlayPanel.Controls.Add(checkBox);
+                overlayPanel.Controls.Add(button);
+                overlayPanel.Size = new Size(130, 25);
+                overlayPanel.Location = new Point(3, overlayPanel1.Location.Y + (overlayPanel.Size.Height + overlayPanel1.Margin.Top) * (i - 1) );
+                overlayPanel.Name = $"overlayPanel{i}";
+
+                //
+                numericUpDown.BorderStyle = System.Windows.Forms.BorderStyle.None;
+                numericUpDown.Location = numericUpDown1.Location;
+                numericUpDown.Maximum = numericUpDown1.Maximum;
+                numericUpDown.Minimum = numericUpDown1.Minimum;
+                numericUpDown.Name = $"numericUpDown{i}";
+                numericUpDown.Size = numericUpDown1.Size;
+                numericUpDown.TextAlign = numericUpDown1.TextAlign;
+                numericUpDown.Value = numericUpDown1.Value;
+
+                //
+                checkBox.AutoSize = checkBox1.AutoSize;
+                checkBox.Location = checkBox1.Location;
+                checkBox.Name = $"checkBox{i}";
+                checkBox.Size = checkBox1.Size;
+
+                //
+                button.FlatStyle = button6.FlatStyle;
+                button.Location = button6.Location;
+                button.Name = $"button{i}";
+                button.Size = button6.Size;
+                button.Text = $"{i}";
+
+                overlayPanel.ResumeLayout(false);
+                overlayPanel.PerformLayout();
+
+                overlays.Controls.Add(overlayPanel);
+                allOverlays.Add(new Overlay(overlayPanel, button, numericUpDown, checkBox, i));
+            }
+            overlays.ResumeLayout(false);
+            ResumeLayout(false);
         }
     }
 }
