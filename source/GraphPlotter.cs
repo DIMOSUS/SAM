@@ -143,6 +143,7 @@ namespace sam
                 LineSeries LS = new LineSeries();
                 LS.Points.AddRange(getSequenceData(measurement, h1Start, h1End, h1Length, 0.01));
                 LS.Color = OxyColor.FromRgb(255, 127, 0);
+                LS.Title = "Frequence Responce";
                 series.Add(LS);
             }
 
@@ -153,7 +154,7 @@ namespace sam
                 int hLength = hEnd - hStart;
 
                 LineSeries LS = new LineSeries();
-                LS.Title = "h" + h.ToString();
+                LS.Title = $"HD{h}";
                 LS.Points.AddRange(getSequenceData(measurement, hStart, hEnd, hLength, 0.07, true));
                 LS.Color = OxyColor.FromRgb((byte)(255 - 127 * (h - 2)), 64, (byte)(127 * (h - 2)));
                 series.Add(LS);
@@ -165,7 +166,7 @@ namespace sam
                 int hLength = hEnd - hStart;
 
                 LineSeries LS = new LineSeries();
-                LS.Title = "hAll";
+                LS.Title = "THD+N";
                 LS.Points.AddRange(getSequenceData(measurement, hStart, hEnd, hLength, 0.1));
                 LS.Color = OxyColor.FromRgb(255, 255, 255);
                 series.Add(LS);
@@ -198,6 +199,7 @@ namespace sam
             LineSeries LS = new LineSeries();
             LS.Points.AddRange(data);
             LS.Color = OxyColor.FromRgb(255, 127, 0);
+            LS.Title = "Phase";
             series.Add(LS);
 
             return series;
@@ -324,7 +326,7 @@ namespace sam
             LineSeries LS = new LineSeries();
             LS.Points.AddRange(data);
             LS.Color = OxyColor.FromRgb(255, 127, 0);
-            
+            LS.Title = "Group Delay";
             series.Add(LS);
 
             return series;

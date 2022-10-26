@@ -8,12 +8,24 @@ using MathNet.Numerics.IntegralTransforms;
 using System.Reflection;
 using OxyPlot.WindowsForms;
 using System.Drawing.Drawing2D;
+using System.Windows.Forms;
 
 namespace sam
 {
+    public enum Mode : int
+    {
+        ImpulseResponce = 0,
+        FrequencyResponse,
+        PhaseResponse,
+        GroupDelay,
+        CumulativeSpectrumDecay,
+    }
+
     public partial class Form1 : Form
     {
-        List<Overlay> allOverlays = new List<Overlay>();
+        public Mode CurrentMode { get; private set; }
+
+        public OverlayCollection Overlays;
 
         public WaveIn waveSource = null;
         DirectSoundOut waveOut = null;
@@ -24,7 +36,7 @@ namespace sam
         public Form1()
         {
             InitializeComponent();
-            CustomInitializeComponent();
+            Overlays = new OverlayCollection(this, overlays, plotView1);
 
             expSweepMeasurement.Init(12, 44100, 24, 1.0f, Chanels.Mono);
             expSweepMeasurement.CompleteNotify += (bool Succes) =>
@@ -60,6 +72,8 @@ namespace sam
 
         private void button2_Click(object sender, EventArgs e)
         {
+            ChangeMode(Mode.FrequencyResponse);
+
             var model = new PlotModel { Title = "Frequency Response" };
 
             if (expSweepMeasurement.ImpulseResponce != null && !expSweepMeasurement.InProgress)
@@ -100,6 +114,8 @@ namespace sam
         
         private void button3_Click(object sender, EventArgs e)
         {
+            ChangeMode(Mode.PhaseResponse);
+
             var model = new PlotModel { Title = "Phase Response" };
 
             if (expSweepMeasurement.ImpulseResponce != null && !expSweepMeasurement.InProgress)
@@ -139,35 +155,15 @@ namespace sam
 
         private void button4_Click(object sender, EventArgs e)
         {
-            //Cumulative cml = new Cumulative();
-            //cml.Owner = this;
-            //cml.ShowDialog();
-            if (expSweepMeasurement.ImpulseResponce != null && !expSweepMeasurement.InProgress)
-            {
-                GraphPlotter.DrawWaterFall(plotView1, expSweepMeasurement);
-            }
+            ChangeMode(Mode.CumulativeSpectrumDecay);
 
             var model = new PlotModel { Title = "Cumulative Spectrum Decay" };
 
             var axis1 = new LinearColorAxis();
             axis1.Key = "ColorAxis";
-            // axis1.Maximum = 2 * Math.PI;
-            // axis1.Minimum = 0;
             axis1.IsZoomEnabled = false;
             axis1.Position = AxisPosition.Right;
             model.Axes.Add(axis1);
-
-            /*
-            var s1 = new ScatterSeries();
-
-            s1.ColorAxisKey = "ColorAxis";
-            s1.MarkerSize = 8;
-            s1.MarkerType = MarkerType.Circle;
-
-            /or (double x = 0; x <= 2 * Math.PI; x += 0.1)
-                s1.Points.Add(new ScatterPoint(x, Math.Sin(x), double.NaN, x));
-            model.Series.Add(s1);
-            */
 
             if (expSweepMeasurement.ImpulseResponce != null && !expSweepMeasurement.InProgress)
             {
@@ -208,11 +204,12 @@ namespace sam
             });
             
             plotView1.Model = model;
-			
         }
 
         private void button5_Click(object sender, EventArgs e)
         {
+            ChangeMode(Mode.GroupDelay);
+
             var model = new PlotModel { Title = "Group Delay" };
 
             if (expSweepMeasurement.ImpulseResponce != null && !expSweepMeasurement.InProgress)
@@ -249,65 +246,21 @@ namespace sam
             plotView1.Model = model;
         }
 
-        private void CustomInitializeComponent()
+        public void ChangeMode(Mode mode)
         {
-            allOverlays.Add(new Overlay(overlayPanel1, button6, numericUpDown1, checkBox1, 1));
+            CurrentMode = mode;
+            plotView1.Model = null;
 
-            SuspendLayout();
-            overlays.SuspendLayout();
-
-            Random r = new Random(3);
-
-            for (int i = 2; i <= 12; i++)
+            if (mode == Mode.CumulativeSpectrumDecay || mode == Mode.ImpulseResponce)
             {
-                Button button = new Button();
-                CheckBox checkBox = new CheckBox();
-                NumericUpDown numericUpDown = new NumericUpDown();
-                Panel overlayPanel = new Panel();
-
-                overlayPanel.SuspendLayout();
-
-                //
-                overlayPanel.BackColor = Color.FromArgb(r.Next(255), r.Next(255), r.Next(255));
-                
-                overlayPanel.Controls.Add(numericUpDown);
-                overlayPanel.Controls.Add(checkBox);
-                overlayPanel.Controls.Add(button);
-                overlayPanel.Size = new Size(130, 25);
-                overlayPanel.Location = new Point(3, overlayPanel1.Location.Y + (overlayPanel.Size.Height + overlayPanel1.Margin.Top) * (i - 1) );
-                overlayPanel.Name = $"overlayPanel{i}";
-
-                //
-                numericUpDown.BorderStyle = System.Windows.Forms.BorderStyle.None;
-                numericUpDown.Location = numericUpDown1.Location;
-                numericUpDown.Maximum = numericUpDown1.Maximum;
-                numericUpDown.Minimum = numericUpDown1.Minimum;
-                numericUpDown.Name = $"numericUpDown{i}";
-                numericUpDown.Size = numericUpDown1.Size;
-                numericUpDown.TextAlign = numericUpDown1.TextAlign;
-                numericUpDown.Value = numericUpDown1.Value;
-
-                //
-                checkBox.AutoSize = checkBox1.AutoSize;
-                checkBox.Location = checkBox1.Location;
-                checkBox.Name = $"checkBox{i}";
-                checkBox.Size = checkBox1.Size;
-
-                //
-                button.FlatStyle = button6.FlatStyle;
-                button.Location = button6.Location;
-                button.Name = $"button{i}";
-                button.Size = button6.Size;
-                button.Text = $"{i}";
-
-                overlayPanel.ResumeLayout(false);
-                overlayPanel.PerformLayout();
-
-                overlays.Controls.Add(overlayPanel);
-                allOverlays.Add(new Overlay(overlayPanel, button, numericUpDown, checkBox, i));
+                overlays.Enabled = false;
             }
-            overlays.ResumeLayout(false);
-            ResumeLayout(false);
+            else
+            {
+                Overlays.Prepare(mode);
+
+                overlays.Enabled = true;
+            }
         }
     }
 }
