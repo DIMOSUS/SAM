@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Update="Form1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\BDOpt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\FROptions.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\GDOpt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\IROpt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\MeasurementOptions.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\PROpt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Options\WaterfallOptions.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="SelectSeries.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>
