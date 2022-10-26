@@ -1,0 +1,534 @@
+﻿using MathNet.Numerics.IntegralTransforms;
+using OxyPlot.Axes;
+using OxyPlot.Series;
+using OxyPlot;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Numerics;
+using MathNet.Numerics.IntegralTransforms;
+using OxyPlot.WindowsForms;
+using System.Reflection;
+using System.Windows.Forms;
+
+namespace sam
+{
+    public class FRGenerateOptions
+    {
+        public int Window = 4096;
+        public int LeftTukeyWindow = 256;
+        public int RightTukeyWindow = 256;
+        public double SmothInvOctaves = 6;
+        public int Offset = 0;
+        public bool Unwrap = true;
+        public bool UseCalibration = true;
+    }
+
+    public class IRGenerateOptions
+    {
+        public int Length = 4096;
+        public bool Logarithmic = false;
+    }
+
+    public static class DataHelper
+    {
+        //-- power
+        public static double ADCtoPdB(double val)
+        {
+            return 20.0 * Math.Log10(Math.Max(val, 0.00000001));
+        }
+
+        public static double PdBtoADC(double val)
+        {
+            return Math.Pow(10.0, val / 20.0);
+        }
+
+        public static List<DataPoint> getSequenceData(ExpSweepMeasurement measurement, int Start, int Length, double[] windowFunc = null)
+        {
+            Complex[] fftSet = new Complex[Length];
+
+            if (windowFunc != null && windowFunc.Length == Length)
+            {
+                for (int i = 0; i < Length; i++)
+                    fftSet[i] = measurement.ImpulseResponce[i + Start] * windowFunc[i];
+            }
+            else
+            {
+                for (int i = 0; i < Length; i++)
+                    fftSet[i] = measurement.ImpulseResponce[i + Start];
+            }
+
+            Fourier.Forward(fftSet, FourierOptions.Matlab);
+
+            List<DataPoint> data = new List<DataPoint> { };
+            for (int i = 1; i < Length / 2; i++)
+            {
+                float f = (float)i * ((float)measurement.SampleRate / (float)Length);
+                //if (f >= 20 && f <= 20000)
+                data.Add(new DataPoint(f, ADCtoPdB(fftSet[i].Magnitude)));
+            }
+
+            return data;
+        }
+
+        public static List<LineSeries> GetSpectrum(ExpSweepMeasurement measurement, FRGenerateOptions fRGenOptions, CalibrationFile Calibration)
+        {
+            List<LineSeries> series = new List<LineSeries> { };
+
+            int maxMagInd = measurement.MaxMagnitudeInd;
+
+            {
+                double leftTukeyWindow = (double)fRGenOptions.LeftTukeyWindow / fRGenOptions.Window * 2.0;
+                double rightTukeyWindow = (double)fRGenOptions.RightTukeyWindow / fRGenOptions.Window * 2.0;
+
+                double[] winFunc = Windowing.TukeyWindow(fRGenOptions.Window, leftTukeyWindow, rightTukeyWindow);
+
+                int h1Length = fRGenOptions.Window;
+                int h1Start = maxMagInd - fRGenOptions.LeftTukeyWindow;
+
+                LineSeries LS = new LineSeries();
+                var data = getSequenceData(measurement, h1Start, h1Length, winFunc);
+                data = LogarithmicResample(data, 20, 20000, 1024, fRGenOptions.UseCalibration ? Calibration : null, 1.0 / fRGenOptions.SmothInvOctaves);
+
+                LS.Points.AddRange(data);
+                LS.Color = OxyColor.FromRgb(255, 127, 0);
+                LS.Title = "Frequence Responce";
+                series.Add(LS);
+            }
+
+            for (int h = 2; h < 5; h++)
+            {
+                int peak = maxMagInd - (int)measurement.HarmonicIROffset(h);
+
+                int hStart = maxMagInd - (int)measurement.HarmonicIROffset(h + 0.03);
+                int hEnd = maxMagInd - (int)measurement.HarmonicIROffset(h - 0.5);
+                int hLength = hEnd - hStart;
+
+                int leftOffset = peak - hStart;
+
+                double leftTukeyWindow = (double)leftOffset / hLength * 2.0;
+                double rightTukeyWindow = 0.5;
+                double[] winFunc = Windowing.TukeyWindow(hLength, leftTukeyWindow, rightTukeyWindow);
+
+                LineSeries LS = new LineSeries();
+                LS.Title = $"HD{h}";
+
+                var data = getSequenceData(measurement, hStart, hLength, winFunc);
+                data = LogarithmicResample(data, 20, 20000, 1024, fRGenOptions.UseCalibration ? Calibration : null, 2.0 / fRGenOptions.SmothInvOctaves);
+
+                LS.Points.AddRange(data);
+                LS.Color = OxyColor.FromRgb((byte)(255 - 127 * (h - 2)), 64, (byte)(127 * (h - 2)));
+                series.Add(LS);
+            }
+
+            {
+                int hStart = maxMagInd - (int)measurement.HarmonicIROffset(5.5);
+                int hEnd = maxMagInd - (int)measurement.HarmonicIROffset(1.5);
+                int hLength = hEnd - hStart;
+
+                double leftTukeyWindow = 0.05;
+                double rightTukeyWindow = 0.05;
+                double[] winFunc = Windowing.TukeyWindow(hLength, leftTukeyWindow, rightTukeyWindow);
+
+                LineSeries LS = new LineSeries();
+                LS.Title = "THD+N";
+
+                var data = getSequenceData(measurement, hStart, hLength, winFunc);
+                data = LogarithmicResample(data, 20, 20000, 1024, fRGenOptions.UseCalibration ? Calibration : null, 2.0 / fRGenOptions.SmothInvOctaves);
+
+                LS.Points.AddRange(data);
+                LS.Color = OxyColor.FromRgb(255, 255, 255);
+                series.Add(LS);
+            }
+            return series;
+        }
+
+        public static List<DataPoint> getPhaseSequence(ExpSweepMeasurement measurement, int Offset, int Length, double[] windowFunc, bool unwrap)
+        {
+            List<LineSeries> series = new List<LineSeries> { };
+
+            Complex[] fftSet = new Complex[Length];
+            if (windowFunc != null)
+            {
+                for (int i = 0; i < Length; i++)
+                    fftSet[i] = measurement.ImpulseResponce[measurement.MaxMagnitudeInd + Offset + i] * windowFunc[i];
+            }
+            else
+            {
+                for (int i = 0; i < Length; i++)
+                    fftSet[i] = measurement.ImpulseResponce[measurement.MaxMagnitudeInd + Offset + i];
+            }
+
+            Fourier.Forward(fftSet, FourierOptions.Matlab);
+
+            if (!unwrap)
+            {
+                List<DataPoint> data_ = new List<DataPoint> { };
+                for (int i = 1; i < fftSet.Length / 2; i++)
+                {
+                    //double phaseOffset = (double)Offset * Math.PI * 2.0 * (double)i / fftSet.Length;
+
+                    double f = (double)i * ((double)measurement.SampleRate / (double)Length);
+
+                    double phase = fftSet[i].Phase;// - phaseOffset;
+
+                    data_.Add(new DataPoint(f, phase));
+                }
+                return data_;
+            }
+
+            double medianSample(int index)
+            {
+                index = Math.Clamp(index, 0, Length / 2);
+
+                int window = 3;
+                int center = (window - 1) / 2;
+
+                double[] samples = new double[window];
+
+                for (int i = 0; i < window; i++)
+                {
+                    int sInd = Math.Clamp(index - center + i, 0, fftSet.Length / 2);
+                    samples[i] = fftSet[sInd].Phase;
+                }
+
+                Array.Sort(samples);
+
+                return samples[center];
+            }
+
+            double accPhase = 0;
+            double avgPhase = 0;
+
+            List<DataPoint> dataPreFilt = new List<DataPoint> { };
+            for (int i = 1; i < fftSet.Length / 2; i++)
+            {
+                float f = (float)i * ((float)measurement.SampleRate / (float)Length);
+
+                double phaseOffset = (double)Offset * Math.PI * 2.0 * (double)i / fftSet.Length;
+                double phase = fftSet[i].Phase + accPhase - phaseOffset;
+                avgPhase += phase;
+                dataPreFilt.Add(new DataPoint(f, phase));
+
+                double s0 = fftSet[i].Phase;
+                double s1 = fftSet[i + 1].Phase;
+
+                if (s1 - s0 > Math.PI)
+                {
+                    accPhase -= Math.PI * 2;
+                }
+                if (s1 - s0 < -Math.PI)
+                {
+                    accPhase += Math.PI * 2;
+                }
+            }
+
+            avgPhase /= (double)dataPreFilt.Count;
+
+            double ShiftPhase = Math.Round(avgPhase / Math.Tau) * Math.Tau;
+
+            for (int i = 0; i < dataPreFilt.Count; i++)
+            {
+                dataPreFilt[i] = new DataPoint(dataPreFilt[i].X, dataPreFilt[i].Y - ShiftPhase);
+            }
+
+            return dataPreFilt;
+        }
+
+        public static List<LineSeries> GetPhase(ExpSweepMeasurement measurement, int length, int leftTukeyWindow, int rightTukeyWindow, int offset, double smothInvOctaves, bool unwrap)
+        {
+            int sOffset = -leftTukeyWindow + offset;
+
+            double dLeftTukeyWindow = (double)leftTukeyWindow / length * 2.0;
+            double dRightTukeyWindow = (double)rightTukeyWindow / length * 2.0;
+            double[] winFunc = Windowing.TukeyWindow(length, dLeftTukeyWindow, dRightTukeyWindow);
+
+            var phaseData = getPhaseSequence(measurement, sOffset, length, winFunc, unwrap);
+
+            List<DataPoint> data = new List<DataPoint>(length / 2);
+            for (int i = 0; i < phaseData.Count; i++)
+            {
+                data.Add(new DataPoint(phaseData[i].X, phaseData[i].Y / Math.PI * 180.0));
+            }
+
+            LineSeries LS = new LineSeries();
+            //LS.Points.AddRange(data);
+            LS.Points.AddRange(LinearSmoth(data, 1.0 / smothInvOctaves));
+            LS.Color = OxyColor.FromRgb(255, 127, 0);
+            LS.Title = "Phase";
+            List<LineSeries> series = new List<LineSeries> { LS };
+
+            return series;
+        }
+
+        public static List<LineSeries> GetImpulse(ExpSweepMeasurement measurement, IRGenerateOptions opt)
+        {
+            List<LineSeries> series = new List<LineSeries> { };
+
+            int offset = 512;
+            int start = measurement.MaxMagnitudeInd - offset;
+
+            int length = Math.Min(offset + opt.Length, measurement.ImpulseResponce.Length - start);
+
+            Complex[] impSet = new Complex[length];
+
+            List<DataPoint> data = new List<DataPoint> { };
+
+            if(opt.Logarithmic)
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    data.Add(new DataPoint(i - offset, ADCtoPdB(measurement.ImpulseResponce[i + start].Magnitude)));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    data.Add(new DataPoint(i - offset, measurement.ImpulseResponce[i + start].Real));
+                }
+            }
+
+            LineSeries LS = new LineSeries();
+            LS.Points.AddRange(data);
+            LS.Color = OxyColor.FromRgb(255, 127, 0);
+            LS.Title = "Impulse Responce";
+
+            series.Add(LS);
+
+            return series;
+        }
+
+        public static List<LineSeries> GetGroupDelay(ExpSweepMeasurement measurement, int length, int leftTukeyWindow, int rightTukeyWindow, int offset, double smothInvOctaves)
+        {
+            List<LineSeries> series = new List<LineSeries> { };
+
+            int sOffset = -leftTukeyWindow + offset;
+
+            double dLeftTukeyWindow = (double)leftTukeyWindow / length * 2.0;
+            double dRightTukeyWindow = (double)rightTukeyWindow / length * 2.0;
+            double[] winFunc = Windowing.TukeyWindowHalfZeroPadded(length, dLeftTukeyWindow, dRightTukeyWindow);
+
+            /*
+            var phaseData = getPhaseSequence(measurement, sOffset, length, winFunc, true);
+
+            List<DataPoint> data = new List<DataPoint> { };
+            for (int i = 0; i < phaseData.Count - 1; i++)
+            {
+                double f0 = phaseData[i].X;
+                double f1 = phaseData[i + 1].X;
+
+                double phaseDelta = phaseData[i].Y - phaseData[i + 1].Y;
+
+                data.Add(new DataPoint(f0, phaseDelta / (f1 * Math.Tau - f0 * Math.Tau) * 1000)); //-- ms
+                //data.Add(new DataPoint(f0, phaseData[i].Y / (f0 * Math.Tau)))yy;
+            }
+            */
+
+            Complex[] fftSet = new Complex[length];
+            Complex[] fftSetScale = new Complex[length];
+            for (int i = 0; i < length; i++)
+            {
+                var imp = measurement.ImpulseResponce[measurement.MaxMagnitudeInd + sOffset + i] * winFunc[i];
+                fftSet[i] = imp;
+                fftSetScale[i] = imp * (double)i / (double)measurement.SampleRate;
+            }
+
+            Fourier.Forward(fftSet, FourierOptions.Matlab);
+            Fourier.Forward(fftSetScale, FourierOptions.Matlab);
+            for (int i = 0; i < length; i++)
+            {
+                fftSet[i] = fftSetScale[i] / fftSet[i];
+            }
+
+            List<DataPoint>  data = new List<DataPoint> { };
+            for (int i = 1; i < fftSet.Length; i++)
+            {
+                double f = (double)i * ((double)measurement.SampleRate / (double)length);
+
+                data.Add(new DataPoint(f, (fftSet[i].Real + sOffset / (double)measurement.SampleRate) * 1000)); //-- ms
+            }
+
+            LineSeries LS = new LineSeries();
+            //LS.Points.AddRange(data);
+            LS.Points.AddRange(LinearSmoth(data, 1.0 / smothInvOctaves));
+            LS.Color = OxyColor.FromRgb(255, 127, 0);
+            LS.Title = "Group Delay";
+            series.Add(LS);
+
+            return series;
+        }
+
+        public static double Log10ToFrequence(double x, double start, double stop)
+        {
+            double val = x * Math.Log10(stop / start);
+            return Math.Pow(10.0, val) * start;
+        }
+
+        public static double FrequenceToLog10(double frequence, double start, double stop)
+        {
+            return Math.Log10(frequence / start) / Math.Log10(stop / start);
+        }
+
+        public static double LanczosKernel(double x, double a = 1)
+        {
+            if (Math.Abs(x) < 0.00001f)
+            {
+                return 1.0f;
+            }
+            if (Math.Abs(x) <= a)
+            {
+                return (a * Math.Sin(Math.PI * x) * Math.Sin(Math.PI * x / a)) / (Math.PI * Math.PI * x * x);
+            }
+            return 0.0f;
+        }
+
+        public static List<DataPoint> LogarithmicResample(List<DataPoint> inData, double start, double stop, int steps, CalibrationFile? Calibration = null, double smothOctaves = 1.0 / 6.0, bool dBUnpack = true)
+        {
+            List<DataPoint> outList = new List<DataPoint>(steps);
+
+            double XStep = inData[1].X - inData[0].X;
+            double a = 2.0;
+            double fk = Math.Pow(2.0, smothOctaves * 0.5);
+
+            int BinarySearchX(double searchedX)
+            {
+                searchedX += XStep * 0.5;
+                int left = 0;
+                int right = inData.Count - 1;
+
+                if (searchedX <= inData[0].X)
+                    return 0;
+                if (searchedX >= inData[inData.Count - 1].X)
+                    return inData.Count - 1;
+
+                while (left <= right)
+                {
+                    var middle = (left + right) / 2;
+
+                    if (searchedX >= inData[middle].X && searchedX < inData[middle + 1].X)
+                    {
+                        return middle;
+                    }
+                    else if (searchedX < inData[middle].X)
+                    {
+                        right = middle - 1;
+                    }
+                    else
+                    {
+                        left = middle + 1;
+                    }
+                }
+                return -1;
+            }
+
+            DataPoint Sample(int index)
+            {
+                return inData[Math.Clamp(index, 0, inData.Count - 1)];
+            }
+
+            for (int i = 0; i < steps; i++)
+            {
+                double frequence = Log10ToFrequence(i / (steps - 1.0), start, stop);
+
+                double halfDeltaFrequence = Math.Max(frequence * (fk - 1), XStep * a);
+                double invHalfDeltaFrequence = 1.0 / halfDeltaFrequence * a;
+
+                int cntIndex = BinarySearchX(frequence);
+                int win = (int)Math.Ceiling(halfDeltaFrequence / XStep);
+
+                double weightAcc = 0;
+                double resAcc = 0;
+
+                //int minIndex = BinarySearchX(frequence - halfDeltaFrequence);
+                //int maxIndex = BinarySearchX(frequence + halfDeltaFrequence);
+                //for(int smpl = minIndex; smpl <= maxIndex; smpl++)
+
+                for (int smpl = Math.Max(cntIndex - win, 0); smpl <= cntIndex + win; smpl++)
+                {
+                    DataPoint samplePoint = Sample(smpl);
+                    double weight = LanczosKernel((frequence - samplePoint.X) * invHalfDeltaFrequence, a);
+
+                    if (dBUnpack)
+                    {
+                        resAcc += PdBtoADC(samplePoint.Y) * weight;
+                    }
+                    else
+                    {
+                        resAcc += samplePoint.Y * weight;
+                    }
+                    weightAcc += weight;
+                }
+
+                double filtredVal = 0;
+                if (dBUnpack)
+                {
+                    filtredVal = ADCtoPdB(resAcc / weightAcc);
+                }
+                else
+                {
+                    filtredVal = (resAcc / weightAcc);
+                }
+
+                if (Calibration != null)
+                {
+                    outList.Add(new DataPoint(frequence, filtredVal - Calibration.dBCorrection(frequence)));
+                }
+                else
+                {
+                    outList.Add(new DataPoint(frequence, filtredVal));
+                }
+            }
+
+            return outList;
+        }
+
+        public static List<DataPoint> LinearSmoth(List<DataPoint> inData, double smothOctaves = 1.0 / 6.0)
+        {
+            List<DataPoint> outList = new List<DataPoint>(inData.Count);
+
+            double a = 2.0;
+            double fk = Math.Pow(2.0, smothOctaves * 0.5);
+
+            DataPoint Sample(int index)
+            {
+                return inData[Math.Clamp(index, 0, inData.Count - 1)];
+            }
+
+            double fStep = inData[1].X - inData[0].X;
+
+            for (int i = 0; i < inData.Count; i++)
+            {
+                var centerPoint = Sample(i);
+                double frequence = centerPoint.X;
+
+                double halfDeltaFrequence = Math.Max(frequence * (fk - 1), fStep * a);
+
+                int win = (int)Math.Max(2, Math.Ceiling(halfDeltaFrequence / fStep));
+
+                double weightAcc = 0;
+                double resAcc = 0;
+
+                for (int smpl = Math.Max(i - win, 0); smpl <= i + win; smpl++)
+                {
+                    DataPoint samplePoint = Sample(smpl);
+                    double weight = LanczosKernel((frequence - samplePoint.X) / halfDeltaFrequence, a);
+
+                    resAcc += samplePoint.Y * weight;
+
+                    weightAcc += weight;
+                }
+
+                double filtredVal = 0;
+
+                filtredVal = resAcc / weightAcc;
+
+                outList.Add(new DataPoint(frequence, filtredVal));
+            }
+
+            return outList;
+        }
+    }
+}
