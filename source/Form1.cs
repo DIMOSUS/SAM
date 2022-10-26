@@ -9,7 +9,7 @@ using System.Reflection;
 using OxyPlot.WindowsForms;
 using System.Drawing.Drawing2D;
 
-namespace audioAnalizer
+namespace sam
 {
     public partial class Form1 : Form
     {

@@ -1,4 +1,4 @@
-﻿namespace audioAnalizer
+﻿namespace sam
 {
     partial class Form1
     {
@@ -35,11 +35,9 @@
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.button7 = new System.Windows.Forms.Button();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
             this.button6 = new System.Windows.Forms.Button();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
-            this.colorDialog1 = new System.Windows.Forms.ColorDialog();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.SuspendLayout();
@@ -119,7 +117,6 @@
             // panel1
             // 
             this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panel1.Controls.Add(this.button7);
             this.panel1.Controls.Add(this.numericUpDown1);
             this.panel1.Controls.Add(this.button6);
             this.panel1.Controls.Add(this.checkBox1);
@@ -127,22 +124,6 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(138, 251);
             this.panel1.TabIndex = 6;
-            // 
-            // button7
-            // 
-            this.button7.BackColor = System.Drawing.Color.Brown;
-            this.button7.FlatAppearance.BorderColor = System.Drawing.Color.Red;
-            this.button7.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Red;
-            this.button7.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Red;
-            this.button7.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.button7.ForeColor = System.Drawing.Color.Red;
-            this.button7.Location = new System.Drawing.Point(98, 3);
-            this.button7.Name = "button7";
-            this.button7.Size = new System.Drawing.Size(35, 47);
-            this.button7.TabIndex = 3;
-            this.button7.Text = "12";
-            this.button7.UseCompatibleTextRendering = true;
-            this.button7.UseVisualStyleBackColor = false;
             // 
             // numericUpDown1
             // 
@@ -202,7 +183,7 @@
             this.Controls.Add(this.plotView1);
             this.Controls.Add(this.button1);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "StupidAudioMeasurement";
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
@@ -221,8 +202,6 @@
         private Panel panel1;
         private Button button6;
         private CheckBox checkBox1;
-        private ColorDialog colorDialog1;
-        private Button button7;
         private NumericUpDown numericUpDown1;
     }
 }

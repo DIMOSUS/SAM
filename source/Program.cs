@@ -1,6 +1,6 @@
 using NAudio.Wave;
 
-namespace audioAnalizer
+namespace sam
 {
     internal static class Program
     {

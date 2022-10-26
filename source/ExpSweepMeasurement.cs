@@ -11,7 +11,7 @@ using static System.Math;
 using MathNet.Numerics.IntegralTransforms;
 using System.Numerics;
 
-namespace audioAnalizer
+namespace sam
 {
     public class ExpSweepMeasurement
     {

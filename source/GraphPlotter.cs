@@ -11,7 +11,7 @@ using System.Numerics;
 using MathNet.Numerics.IntegralTransforms;
 using OxyPlot.WindowsForms;
 
-namespace audioAnalizer
+namespace sam
 {
     public static class GraphPlotter
     {
