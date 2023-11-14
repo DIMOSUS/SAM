@@ -50,6 +50,7 @@
             this.buttonPROpt = new System.Windows.Forms.Button();
             this.buttonImpOpt = new System.Windows.Forms.Button();
             this.buttonNoise = new System.Windows.Forms.Button();
+            this.buttonAutocorrelation = new System.Windows.Forms.Button();
             this.overlays.SuspendLayout();
             this.overlayPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
@@ -309,12 +310,24 @@
             this.buttonNoise.UseVisualStyleBackColor = true;
             this.buttonNoise.Click += new System.EventHandler(this.buttonNoise_Click);
             // 
+            // buttonAutocorrelation
+            // 
+            this.buttonAutocorrelation.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonAutocorrelation.Location = new System.Drawing.Point(1114, 244);
+            this.buttonAutocorrelation.Name = "buttonAutocorrelation";
+            this.buttonAutocorrelation.Size = new System.Drawing.Size(100, 23);
+            this.buttonAutocorrelation.TabIndex = 17;
+            this.buttonAutocorrelation.Text = "Autocorrelation";
+            this.buttonAutocorrelation.UseVisualStyleBackColor = true;
+            this.buttonAutocorrelation.Click += new System.EventHandler(this.buttonGetAutocorrelation_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
             this.ClientSize = new System.Drawing.Size(1264, 729);
+            this.Controls.Add(this.buttonAutocorrelation);
             this.Controls.Add(this.buttonNoise);
             this.Controls.Add(this.buttonImpOpt);
             this.Controls.Add(this.buttonPROpt);
@@ -365,5 +378,6 @@
         private Button buttonPROpt;
         private Button buttonImpOpt;
         private Button buttonNoise;
+        private Button buttonAutocorrelation;
     }
 }

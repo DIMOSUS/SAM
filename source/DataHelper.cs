@@ -301,6 +301,70 @@ namespace sam
             return series;
         }
 
+        public static List<LineSeries> GetAutocorrelation(ExpSweepMeasurement measurement, IRGenerateOptions opt)
+        {
+            List<LineSeries> series = new List<LineSeries> { };
+
+            int offset = 64;
+            int length = 2048;
+
+            float timeWindow = 3.0f; //-- ms
+
+            int start = measurement.MaxMagnitudeInd - offset;
+            double avg = 0;
+
+            //-- normalization
+            float[] impInSet = new float[length];
+            for(int i = 0; i < length; i++)
+            {
+                impInSet[i] = (float)(measurement.ImpulseResponce[start + i].Real);
+                avg += impInSet[i];
+            }
+            avg /= length;
+
+            float fAvg = (float)avg;
+
+            //-- self convolution
+            float[] impConvSet = new float[length];
+            
+            float denominator = 0;
+            for (int i = 0; i < length; i++)
+            {
+                denominator += (impInSet[i] - fAvg) * (impInSet[i] - fAvg);
+            }
+
+            for (int k = 0; k < length; k++)
+            {
+                float numerator = 0;
+                for (int i = 0; i < length - k; i++)
+                {
+                    numerator += (impInSet[i] - fAvg) * (impInSet[i + k] - fAvg);
+                }
+                impConvSet[k] = numerator / denominator; 
+            }
+
+            List<DataPoint> data = new List<DataPoint> { };
+
+            for (int i = 0; i < length; i++)
+            {
+                float timeMs = i / (float)measurement.SampleRate * 1000.0f;
+                if (timeMs > timeWindow)
+                {
+                    break;
+                }
+                data.Add(new DataPoint(timeMs, impConvSet[i]));
+            }
+
+            LineSeries LS = new LineSeries();
+            LS.Points.AddRange(data);
+            LS.Color = OxyColor.FromRgb(255, 127, 0);
+            LS.Title = "Autocorrelation";
+
+            series.Add(LS);
+
+            return series;
+        }
+
         public static List<LineSeries> GetGroupDelay(ExpSweepMeasurement measurement, int length, int leftTukeyWindow, int rightTukeyWindow, int offset, double smothInvOctaves)
         {
             List<LineSeries> series = new List<LineSeries> { };

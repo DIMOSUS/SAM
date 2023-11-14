@@ -27,7 +27,8 @@ namespace sam
         GroupDelay,
         CumulativeSpectrumDecay,
         BurstDecay,
-        Noise
+        Noise,
+        Autocorrelation
     }
 
     public partial class Form1 : Form
@@ -611,6 +612,37 @@ namespace sam
                 noiseMeasurement.Run();
                 liveGraph.Start();
             }
+        }
+
+        private void buttonGetAutocorrelation_Click(object sender, EventArgs e)
+        {
+            ChangeMode(Mode.Autocorrelation);
+
+            var model = new PlotModel { Title = "Autocorrelation" };
+
+            if (expSweepMeasurement.ImpulseResponce != null && !expSweepMeasurement.InProgress)
+            {
+                var series = DataHelper.GetAutocorrelation(expSweepMeasurement, iRGenerateOptions);
+                foreach (var s in series)
+                {
+                    model.Series.Add(s);
+                }
+            }
+
+            model.Axes.Add(new LinearAxis
+            {
+                Position = AxisPosition.Bottom,
+                MajorGridlineStyle = LineStyle.Solid,
+                Title = "ms"
+            });
+            model.Axes.Add(new LinearAxis
+            {
+                Position = AxisPosition.Left,
+            });
+
+            plotView1.Model = model;
+
+            Overlays.Show(CurrentMode);
         }
     }
 }
