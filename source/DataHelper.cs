@@ -303,59 +303,84 @@ namespace sam
 
         public static List<LineSeries> GetAutocorrelation(ExpSweepMeasurement measurement, IRGenerateOptions opt)
         {
-            List<LineSeries> series = new List<LineSeries> { };
-
             int offset = 64;
             int length = 2048;
-
             float timeWindow = 3.0f; //-- ms
 
+            List<LineSeries> series = new List<LineSeries> { };
+            LineSeries LS = new LineSeries();
+            List<DataPoint> data = new List<DataPoint> { };
+
             int start = measurement.MaxMagnitudeInd - offset;
-            double avg = 0;
+            float fAvg = 0;
 
             //-- normalization
             float[] impInSet = new float[length];
             for(int i = 0; i < length; i++)
             {
                 impInSet[i] = (float)(measurement.ImpulseResponce[start + i].Real);
-                avg += impInSet[i];
+                fAvg += impInSet[i];
             }
-            avg /= length;
-
-            float fAvg = (float)avg;
+            fAvg /= length;
 
             //-- self convolution
-            float[] impConvSet = new float[length];
-            
             float denominator = 0;
             for (int i = 0; i < length; i++)
             {
                 denominator += (impInSet[i] - fAvg) * (impInSet[i] - fAvg);
             }
 
+            float substep(int i, float step)
+            {
+                if (i < 1 || i > length - 3)
+                    return impInSet[i];
+
+                float wAcc = 0;
+                float f = 0;
+                for(int l = -1; l < 3; l++)
+                {
+                    float w = (float)LanczosKernel(l - step, 2.0);
+                    wAcc += w;
+                    f += w * impInSet[i + l];
+                }
+
+                return f / wAcc;
+            }
+
             for (int k = 0; k < length; k++)
             {
+                if (k / (float)measurement.SampleRate * 1000.0f > timeWindow)
+                {
+                    break;
+                }
+
+                //-- standart
+                /*
                 float numerator = 0;
                 for (int i = 0; i < length - k; i++)
                 {
                     numerator += (impInSet[i] - fAvg) * (impInSet[i + k] - fAvg);
                 }
-                impConvSet[k] = numerator / denominator; 
-            }
+                
+                float timeMs = k / (float)measurement.SampleRate * 1000.0f;
+                
+                data.Add(new DataPoint(timeMs, numerator / denominator));
+                */
 
-            List<DataPoint> data = new List<DataPoint> { };
-
-            for (int i = 0; i < length; i++)
-            {
-                float timeMs = i / (float)measurement.SampleRate * 1000.0f;
-                if (timeMs > timeWindow)
+                //-- supersampling
+                for (float sStep = 0; sStep < 1.0f; sStep += 0.1f)
                 {
-                    break;
+                    float numerator = 0;
+                    for (int i = 0; i < length - k; i++)
+                    {
+                        numerator += (impInSet[i] - fAvg) * (substep(i + k, sStep) - fAvg);
+                    }
+
+                    float timeMs = (k + sStep) / (float)measurement.SampleRate * 1000.0f;
+                    data.Add(new DataPoint(timeMs, numerator / denominator));
                 }
-                data.Add(new DataPoint(timeMs, impConvSet[i]));
             }
 
-            LineSeries LS = new LineSeries();
             LS.Points.AddRange(data);
             LS.Color = OxyColor.FromRgb(255, 127, 0);
             LS.Title = "Autocorrelation";
